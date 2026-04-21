@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Workflow Result</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #f4f7fb, #e8eef8);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+            padding: 32px;
+        }
+
+        h1 {
+            margin-top: 0;
+            text-align: center;
+            color: #14213d;
+        }
+
+        .box {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .error {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+
+        .success {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            color: #166534;
+        }
+
+        .row {
+            margin-bottom: 12px;
+            color: #334155;
+            line-height: 1.6;
+        }
+
+        .label {
+            font-weight: bold;
+            color: #0f172a;
+        }
+
+        .muted {
+            color: #64748b;
+        }
+
+        .actions {
+            margin-top: 24px;
+            text-align: center;
+        }
+
+        a.button {
+            display: inline-block;
+            text-decoration: none;
+            background: #1247a6;
+            color: #ffffff;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-weight: 700;
+        }
+
+        a.button:hover {
+            background: #0f3b8d;
+        }
+
+        pre {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Workflow Result</h1>
+
+        {% if error %}
+            <div class="box error">
+                <div class="row">{{ error }}</div>
+            </div>
+        {% elif result %}
+            <div class="box success">
+                <div class="row"><span class="label">HTTP Status Code:</span> {{ result.http_status_code }}</div>
+                <div class="row"><span class="label">Service Status Code:</span> {{ result.service_status_code }}</div>
+                {% if result.submission_id %}
+                    <div class="row"><span class="label">Submission ID:</span> <span id="submission-id">{{ result.submission_id }}</span></div>
+                {% endif %}
+                <div class="row"><span class="label">Current Status:</span> <span id="current-status">{{ result.status }}</span></div>
+                <div class="row"><span class="label">Message:</span> <span id="current-message">{{ result.message }}</span></div>
+                {% if result.submission_id and result.status == "PENDING" %}
+                    <div class="row muted" id="polling-note">Waiting for workflow update. This page checks status automatically every 2 seconds.</div>
+                {% endif %}
+            </div>
+
+            <div class="box">
+                <div class="row"><span class="label">Submitted Payload:</span></div>
+                <pre>{{ result.submitted_payload }}</pre>
+            </div>
+
+            <div class="box">
+                <div class="row"><span class="label">Raw Response:</span></div>
+                <pre id="raw-response">{{ result.raw_response }}</pre>
+            </div>
+        {% else %}
+            <div class="box">
+                <div class="row">No data available.</div>
+            </div>
+        {% endif %}
+
+        <div class="actions">
+            <a class="button" href="/">Back to Home</a>
+        </div>
+    </div>
+
+    {% if result and result.submission_id and result.status == "PENDING" %}
+    <script>
+        const submissionId = {{ result.submission_id | tojson }};
+        const statusEl = document.getElementById("current-status");
+        const messageEl = document.getElementById("current-message");
+        const rawResponseEl = document.getElementById("raw-response");
+        const pollingNoteEl = document.getElementById("polling-note");
+        const terminalStatuses = new Set(["READY", "APPROVED", "NEEDS REVISION", "INCOMPLETE"]);
+
+        async function refreshStatus() {
+            try {
+                const response = await fetch(`/status/${encodeURIComponent(submissionId)}`, {
+                    headers: { "Accept": "application/json" }
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.ok === false) {
+                    if (pollingNoteEl && data.error) {
+                        pollingNoteEl.textContent = data.error;
+                    }
+                    return;
+                }
+
+                if (typeof data.status === "string") {
+                    statusEl.textContent = data.status;
+                }
+                if (typeof data.message === "string") {
+                    messageEl.textContent = data.message;
+                }
+                if (rawResponseEl) {
+                    rawResponseEl.textContent = JSON.stringify(data.raw_response, null, 2);
+                }
+
+                if (terminalStatuses.has(data.status)) {
+                    if (pollingNoteEl) {
+                        pollingNoteEl.textContent = "Workflow update received.";
+                    }
+                    window.clearInterval(timerId);
+                }
+            } catch (error) {
+                if (pollingNoteEl) {
+                    pollingNoteEl.textContent = `Status refresh failed: ${error.message}`;
+                }
+            }
+        }
+
+        const timerId = window.setInterval(refreshStatus, 2000);
+        refreshStatus();
+    </script>
+    {% endif %}
+</body>
+</html>

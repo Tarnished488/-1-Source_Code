@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Workflow Submission</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: linear-gradient(135deg, #f4f7fb, #e8eef8);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+            background: #ffffff;
+            border-radius: 18px;
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+            padding: 32px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+            color: #14213d;
+            text-align: center;
+        }
+
+        .subtitle {
+            margin: 0 0 24px;
+            text-align: center;
+            color: #526071;
+            font-size: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #243447;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #c3d0df;
+            border-radius: 10px;
+            font-size: 15px;
+            outline: none;
+            transition: 0.2s;
+        }
+
+        input:focus, textarea:focus {
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.12);
+        }
+
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #1247a6;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background: #0f3b8d;
+        }
+
+        .hint {
+            margin-top: 18px;
+            color: #526071;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #f7fafc;
+            border: 1px solid #dbe4ee;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        code {
+            background: #e9eef5;
+            border-radius: 6px;
+            padding: 2px 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Workflow Submit</h1>
+        <p class="subtitle">Send a JSON payload that matches the workflow service contract</p>
+
+        <form method="post" action="/submit">
+            <div class="form-group">
+                <label for="title">Title</label>
+                <input type="text" id="title" name="title" placeholder="Enter title" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" name="description" placeholder="Enter description (at least 30 characters)" minlength="30" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="filename">Filename</label>
+                <input type="text" id="filename" name="filename" placeholder="e.g. poster.png" pattern=".*\.(jpg|jpeg|png|JPG|JPEG|PNG)$" title="Filename must end with .jpg, .jpeg, or .png" required>
+            </div>
+
+            <button type="submit">Submit to Workflow</button>
+        </form>
+
+    </div>
+</body>
+</html>
