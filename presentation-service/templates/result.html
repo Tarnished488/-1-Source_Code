@@ -70,6 +70,10 @@
             color: #64748b;
         }
 
+        .warning {
+            color: #92400e;
+        }
+
         .actions {
             margin-top: 24px;
             text-align: center;
@@ -148,7 +152,7 @@
         const messageEl = document.getElementById("current-message");
         const rawResponseEl = document.getElementById("raw-response");
         const pollingNoteEl = document.getElementById("polling-note");
-        const terminalStatuses = new Set(["READY", "APPROVED", "NEEDS REVISION", "INCOMPLETE"]);
+        const terminalStatuses = new Set(["READY", "APPROVED", "NEEDS REVISION", "INCOMPLETE", "NOT FOUND"]);
 
         async function refreshStatus() {
             try {
@@ -164,7 +168,7 @@
                     return;
                 }
 
-                if (typeof data.status === "string") {
+                if (typeof data.status === "string" && data.status.length > 0) {
                     statusEl.textContent = data.status;
                 }
                 if (typeof data.message === "string") {
@@ -176,9 +180,15 @@
 
                 if (terminalStatuses.has(data.status)) {
                     if (pollingNoteEl) {
-                        pollingNoteEl.textContent = "Workflow update received.";
+                        pollingNoteEl.textContent = data.status === "NOT FOUND"
+                            ? "No matching record was returned for this submission ID."
+                            : "Workflow update received.";
+                        pollingNoteEl.className = data.status === "NOT FOUND" ? "row warning" : "row muted";
                     }
                     window.clearInterval(timerId);
+                } else if (pollingNoteEl) {
+                    const checkedAt = new Date().toLocaleTimeString();
+                    pollingNoteEl.textContent = `Last checked at ${checkedAt}. Current backend status is ${data.status || "unknown"}.`;
                 }
             } catch (error) {
                 if (pollingNoteEl) {

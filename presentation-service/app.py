@@ -10,6 +10,18 @@ WORKFLOW_SUBMIT_URL = f"{WORKFLOW_BASE_URL}/workflow/submit"
 WORKFLOW_STATUS_URL_TEMPLATE = f"{WORKFLOW_BASE_URL}/workflow/status/{{submission_id}}"
 
 
+def normalize_status(status_value, default_status="PENDING"):
+    if not status_value:
+        return default_status
+    return str(status_value).upper()
+
+
+def extract_submission_id(payload):
+    if not isinstance(payload, dict):
+        return None
+    return payload.get("submissionId") or payload.get("id")
+
+
 def build_result_data(payload, http_status_code, default_status="PENDING"):
     if isinstance(payload, dict) and "body" in payload:
         outer_status_code = payload.get("statusCode", http_status_code)
@@ -28,16 +40,23 @@ def build_result_data(payload, http_status_code, default_status="PENDING"):
         return {
             "http_status_code": http_status_code,
             "service_status_code": outer_status_code,
-            "submission_id": body_data.get("id", body_data.get("submissionId")),
-            "status": body_data.get("status", default_status),
+            "submission_id": extract_submission_id(body_data),
+            "status": normalize_status(body_data.get("status"), default_status),
             "message": body_data.get("message", "No message returned"),
             "raw_response": payload
         }
 
-    submission_id = payload.get("id") if isinstance(payload, dict) else None
-    if isinstance(payload, dict):
-        submission_id = payload.get("submissionId", submission_id)
+    if isinstance(payload, dict) and not payload:
+        return {
+            "http_status_code": http_status_code,
+            "service_status_code": http_status_code,
+            "submission_id": None,
+            "status": "NOT FOUND",
+            "message": "No record returned for this submission ID",
+            "raw_response": payload
+        }
 
+    submission_id = extract_submission_id(payload)
     message = "Submission accepted by workflow service"
     if isinstance(payload, dict):
         message = payload.get("message", payload.get("error", message))
@@ -46,7 +65,7 @@ def build_result_data(payload, http_status_code, default_status="PENDING"):
         "http_status_code": http_status_code,
         "service_status_code": http_status_code,
         "submission_id": submission_id,
-        "status": payload.get("status", default_status) if isinstance(payload, dict) else default_status,
+        "status": normalize_status(payload.get("status"), default_status) if isinstance(payload, dict) else default_status,
         "message": message,
         "raw_response": payload
     }
@@ -118,6 +137,7 @@ def status(submission_id):
         )
         response.raise_for_status()
         result_data = parse_response_payload(response, default_status="PENDING")
+        result_data["submission_id"] = result_data.get("submission_id") or submission_id
         return jsonify(result_data)
     except requests.exceptions.RequestException as e:
         return jsonify({
